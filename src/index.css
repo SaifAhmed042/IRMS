@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #0F1B3B;
+  background: #F9FAFB;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.01em; }
+
+/* Leaflet container fills its parent */
+.leaflet-container { width: 100%; height: 100%; background: #E8EEF7; }
+
+.train-marker {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9999px;
+  color: white; font-weight: 700; font-size: 11px;
+  border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.train-marker.rajdhani  { background: #1E3A8A; }
+.train-marker.express   { background: #2563EB; }
+.train-marker.passenger { background: #10B981; }
+.train-marker.goods     { background: #6B7280; }
+
+.incident-marker {
+  width: 22px; height: 22px; border-radius: 9999px;
+  background: #EF4444; border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(239,68,68,0.5);
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0;   }
+}
+.pulse::after {
+  content: ''; position: absolute; inset: 0; border-radius: 9999px;
+  border: 2px solid currentColor; animation: pulse-ring 1.6s ease-out infinite;
+}
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
