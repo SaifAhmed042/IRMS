@@ -1,9 +1,10 @@
-import { TrainFront, Activity } from 'lucide-react';
+import { TrainFront, Activity, LogOut } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface Props {
   role: 'manager' | 'locopilot' | 'user';
-  onChangeRole: () => void;
+  userName: string;
+  onSignOut: () => void;
   children?: ReactNode;
 }
 
@@ -13,7 +14,7 @@ const ROLE_LABEL: Record<Props['role'], string> = {
   user: 'Public Reporter',
 };
 
-export default function Header({ role, onChangeRole, children }: Props) {
+export default function Header({ role, userName, onSignOut, children }: Props) {
   return (
     <header className="bg-white border-b border-slate-200 shadow-soft">
       <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center gap-6">
@@ -33,15 +34,16 @@ export default function Header({ role, onChangeRole, children }: Props) {
         <div className="flex-1" />
         {children}
         <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="text-[11px] text-slate-500">Active role</div>
-            <div className="text-sm font-semibold text-rail-700">{ROLE_LABEL[role]}</div>
+          <div className="text-right max-w-[200px] truncate">
+            <div className="text-[11px] text-slate-500 truncate">{ROLE_LABEL[role]}</div>
+            <div className="text-sm font-semibold text-rail-700 truncate">{userName}</div>
           </div>
           <button
-            onClick={onChangeRole}
-            className="text-xs px-3 py-1.5 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            onClick={onSignOut}
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
           >
-            Switch
+            <LogOut size={13} />
+            Sign out
           </button>
         </div>
       </div>
