@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useTrains, useLatestLocations, useIncidents, useWeather, useSchedules } from '../hooks/useIRMSData';
 import { computeDecision } from '../lib/decisionEngine';
 import { explainDecision, geminiAvailable } from '../lib/gemini';
-import { pointAlongCorridor } from '../lib/corridor';
+import { pointAlongCorridor, CORRIDOR } from '../lib/corridor';
 import RailMap from './RailMap';
 import type { Decision } from '../lib/types';
 
@@ -18,11 +18,35 @@ export default function LocoPilot() {
   const weather = useWeather();
   const schedules = useSchedules();
 
-  const [trainId, setTrainId] = useState<string | null>(null);
-  const [tracking, setTracking] = useState(false);
-  const [progress, setProgress] = useState(0); // 0..1 along corridor
-  const [direction] = useState(1); // 1 = Delhi→Mumbai
+  const [trainId, setTrainId] = useState<string | null>(() => localStorage.getItem('irms_trainId'));
+  const [tracking, setTracking] = useState(() => localStorage.getItem('irms_tracking') === 'true');
+
+  useEffect(() => {
+    if (trainId) localStorage.setItem('irms_trainId', trainId);
+    else localStorage.removeItem('irms_trainId');
+  }, [trainId]);
+
+  useEffect(() => {
+    if (tracking) localStorage.setItem('irms_tracking', 'true');
+    else localStorage.removeItem('irms_tracking');
+  }, [tracking]);
+  const [progress, setProgress] = useState(0); 
+  const [direction, setDirection] = useState(1); 
   const [latestDecision, setLatestDecision] = useState<Decision | null>(null);
+
+  // Initialize train direction and progress from its schedule
+  useEffect(() => {
+    if (!train || tracking) return;
+    const sched = schedules.get(train.id);
+    if (sched && sched.length >= 2) {
+      const isSouth = sched[0].station_lat > sched[1].station_lat;
+      setDirection(isSouth ? 1 : -1);
+      const startIdx = CORRIDOR.findIndex(s => s.name === sched[0].station_name);
+      if (startIdx >= 0) {
+        setProgress(startIdx / (CORRIDOR.length - 1));
+      }
+    }
+  }, [train, schedules, tracking]);
   const [aiExplanation, setAiExplanation] = useState('');
 
   const train = useMemo(() => trains.find((t) => t.id === trainId) ?? null, [trains, trainId]);
@@ -37,8 +61,16 @@ export default function LocoPilot() {
   useEffect(() => {
     if (!tracking || !train) return;
     const tick = async () => {
-      // advance ~0.6% per tick along corridor
       const next = progressRef.current + direction * 0.006;
+      
+      // Auto-remove train if destination reached
+      if ((direction === 1 && next >= 1) || (direction === -1 && next <= 0)) {
+        setTracking(false);
+        setTrainId(null);
+        await supabase.from('trains').delete().eq('id', train.id);
+        return;
+      }
+
       const clamped = next > 1 ? 1 : next < 0 ? 0 : next;
       progressRef.current = clamped;
       setProgress(clamped);
@@ -128,8 +160,8 @@ export default function LocoPilot() {
 
   const myLoc = train ? locations.get(train.id) : undefined;
   const action = latestDecision?.action ?? 'PROCEED';
-  const actionBg =
-    action === 'PROCEED' ? 'bg-emerald-500' : action === 'REDUCE' ? 'bg-amber-500' : 'bg-rose-500';
+  const actionTextColor =
+    action === 'PROCEED' ? 'text-emerald-300' : action === 'REDUCE' ? 'text-amber-300' : 'text-rose-300';
 
   if (!train) {
     return (
@@ -163,7 +195,7 @@ export default function LocoPilot() {
   return (
     <div className="max-w-6xl mx-auto p-6 grid grid-cols-12 gap-5">
       <div className="col-span-12 lg:col-span-7 space-y-5">
-        <Card className={`relative overflow-hidden text-white ${actionBg}`}>
+        <Card className="relative overflow-hidden text-white bg-rail-500">
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10"></div>
           <div className="p-6">
             <div className="flex items-center justify-between">
@@ -174,7 +206,7 @@ export default function LocoPilot() {
               </div>
               <div className="text-right">
                 <div className="text-xs uppercase tracking-widest opacity-80">Action</div>
-                <div className="text-3xl font-bold">{action}</div>
+                <div className={`text-3xl font-bold ${actionTextColor}`}>{action}</div>
               </div>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-4">
@@ -253,10 +285,13 @@ export default function LocoPilot() {
             </div>
           </div>
           <button
-            onClick={() => setTrainId(null)}
+            onClick={() => {
+              setTracking(false);
+              setTrainId(null);
+            }}
             className="mt-4 text-xs text-slate-500 hover:text-rail-500"
           >
-            ← change train
+            ← Cancel Journey
           </button>
         </Card>
 

@@ -47,6 +47,25 @@ export async function classifyIncidentImage(imageBase64: string, mime: string): 
   return 'unknown';
 }
 
+export async function extractIncidentData(imageBase64: string, mime: string): Promise<{ type: string; description: string; severity: string } | null> {
+  const prompt = `Analyze this railway track incident image. Return a raw JSON object with NO markdown formatting, no code blocks, just raw JSON. Use this exact schema:
+{
+  "type": "obstruction" | "damage" | "animal" | "flood" | "unknown",
+  "description": "Short description of what is in the image (max 10 words)",
+  "severity": "LOW" | "MEDIUM" | "HIGH"
+}`;
+  const text = await callGemini([
+    { text: prompt },
+    { inline_data: { mime_type: mime, data: imageBase64 } },
+  ]);
+  try {
+    const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(clean);
+  } catch {
+    return null;
+  }
+}
+
 export async function smartAlertText(input: {
   type: string;
   severity: string;

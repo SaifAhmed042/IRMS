@@ -173,10 +173,10 @@ export function computeDecision(ctx: DecisionContext): DecisionResult {
       if (otherScore > myScore) {
         action = 'REDUCE';
         recommended = Math.min(recommended, Math.round(baseMax * 0.4 * factor));
-        reason = `Schedule clash at ${myNext.stop.station_name}: higher-priority ${o.train.train_type.toUpperCase()} ${o.train.train_no} arrives within ${stationClash.minutesApart} min — reduce speed and yield.`;
+        reason = `Schedule clash at ${myNext.stop.station_name}: higher-priority ${o.train.train_name} (${o.train.train_no}) arrives within ${stationClash.minutesApart} min — reduce speed and yield.`;
         conflictNo = o.train.train_no;
       } else if (otherScore < myScore) {
-        reason = `Schedule clash at ${myNext.stop.station_name} with ${o.train.train_no} (${o.train.train_type}) — you have priority, hold cruising speed.`;
+        reason = `Schedule clash at ${myNext.stop.station_name} with ${o.train.train_name} (${o.train.train_no}) — you have priority, hold cruising speed.`;
         conflictNo = o.train.train_no;
       } else {
         action = action === 'PROCEED' ? 'REDUCE' : action;

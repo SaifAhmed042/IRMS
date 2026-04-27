@@ -18,6 +18,7 @@ import {
   useLatestDecisions,
   useIncidents,
   useWeather,
+  useSchedules,
 } from '../hooks/useIRMSData';
 import { decisionToBadge } from '../lib/decisionEngine';
 import { supabase } from '../lib/supabase';
@@ -34,6 +35,7 @@ export default function StationManager() {
   const decisions = useLatestDecisions();
   const incidents = useIncidents(20);
   const weather = useWeather();
+  const schedules = useSchedules();
 
   const activeTrains = useMemo(
     () => trains.filter((t) => locations.has(t.id)),
@@ -165,6 +167,7 @@ export default function StationManager() {
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-200">
                   <th className="py-2">Train</th>
+                  <th>Route & Location</th>
                   <th>Type</th>
                   <th>Status</th>
                   <th className="text-right">Speed</th>
@@ -177,11 +180,28 @@ export default function StationManager() {
                 {trains.map((t) => {
                   const loc = locations.get(t.id);
                   const dec = decisions.get(t.id);
+                  const sched = schedules.get(t.id) || [];
+                  const src = sched.length > 0 ? sched[0].station_name : 'N/A';
+                  const dst = sched.length > 0 ? sched[sched.length - 1].station_name : 'N/A';
+                  let passedStation = '—';
+                  if (loc && sched.length > 0) {
+                    const ranked = [...sched].sort((a,b) => {
+                       const distA = Math.hypot(loc.lat - a.station_lat, loc.lng - a.station_lng);
+                       const distB = Math.hypot(loc.lat - b.station_lat, loc.lng - b.station_lng);
+                       return distA - distB;
+                    });
+                    if (ranked.length > 0) passedStation = `Passed near ${ranked[0].station_name}`;
+                  }
+
                   return (
                     <tr key={t.id} className="border-b border-slate-100 last:border-0">
                       <td className="py-3">
                         <div className="font-bold text-rail-700">{t.train_no}</div>
                         <div className="text-xs text-slate-500">{t.train_name}</div>
+                      </td>
+                      <td>
+                        <div className="text-xs font-semibold text-slate-700">{src} → {dst}</div>
+                        <div className="text-[11px] text-slate-500">{passedStation}</div>
                       </td>
                       <td>
                         <Pill tone="blue">{t.train_type.toUpperCase()}</Pill>

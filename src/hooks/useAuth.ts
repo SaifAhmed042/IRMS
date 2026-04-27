@@ -28,12 +28,16 @@ export function useAuth(): AuthState {
         return;
       }
       const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
+        .from('users')
+        .select('id, name, role')
         .eq('id', session.user.id)
         .maybeSingle();
       if (mounted) {
-        setState({ loading: false, session, profile: (data as Profile) ?? null });
+        setState({ 
+          loading: false, 
+          session, 
+          profile: data ? { id: data.id, full_name: data.name, role: data.role } : null 
+        });
       }
     };
 

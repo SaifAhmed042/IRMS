@@ -6,22 +6,32 @@ export function useSchedules(): Map<string, ScheduleStop[]> {
   const [byTrain, setByTrain] = useState<Map<string, ScheduleStop[]>>(new Map());
   useEffect(() => {
     let mounted = true;
-    supabase
-      .from('train_schedule')
-      .select('*')
-      .order('stop_order')
-      .then(({ data }) => {
-        if (!mounted || !data) return;
-        const map = new Map<string, ScheduleStop[]>();
-        for (const row of data as ScheduleStop[]) {
-          const arr = map.get(row.train_id) ?? [];
-          arr.push(row);
-          map.set(row.train_id, arr);
-        }
-        setByTrain(map);
-      });
+    const fetchSchedules = () => {
+      supabase
+        .from('train_schedule')
+        .select('*')
+        .order('stop_order')
+        .then(({ data }) => {
+          if (!mounted || !data) return;
+          const map = new Map<string, ScheduleStop[]>();
+          for (const row of data as ScheduleStop[]) {
+            const arr = map.get(row.train_id) ?? [];
+            arr.push(row);
+            map.set(row.train_id, arr);
+          }
+          setByTrain(map);
+        });
+    };
+    fetchSchedules();
+
+    const ch = supabase
+      .channel('schedule-ch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'train_schedule' }, fetchSchedules)
+      .subscribe();
+
     return () => {
       mounted = false;
+      supabase.removeChannel(ch);
     };
   }, []);
   return byTrain;

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Camera, MapPin, Send, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
+import { Camera, Upload, MapPin, Send, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
 import { Card, Button, SectionTitle, Pill } from './ui';
 import { supabase } from '../lib/supabase';
-import { classifyIncidentImage, smartAlertText, geminiAvailable } from '../lib/gemini';
+import { extractIncidentData, smartAlertText, geminiAvailable } from '../lib/gemini';
 import { useIncidents } from '../hooks/useIRMSData';
 import { pointAlongCorridor } from '../lib/corridor';
 import type { Severity } from '../lib/types';
@@ -24,8 +24,10 @@ export default function UserReport() {
   const incidents = useIncidents(8);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [issueType, setIssueType] = useState('unknown');
   const [severity, setSeverity] = useState<Severity>('MEDIUM');
   const [image, setImage] = useState<{ base64: string; mime: string; dataUrl: string } | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ type: string; alert: string } | null>(null);
@@ -47,29 +49,36 @@ export default function UserReport() {
     if (!f) return;
     const r = await fileToBase64(f);
     setImage(r);
+
+    if (geminiAvailable()) {
+      setAnalyzing(true);
+      const data = await extractIncidentData(r.base64, r.mime);
+      if (data) {
+        setIssueType(data.type);
+        setDescription(data.description);
+        setSeverity(data.severity as Severity);
+      }
+      setAnalyzing(false);
+    }
   }
 
   async function submit() {
     if (!coords) return;
     setSubmitting(true);
-    let detectedType = 'unknown';
     let alertText = '';
 
-    if (geminiAvailable() && image) {
-      detectedType = await classifyIncidentImage(image.base64, image.mime);
-    }
     if (geminiAvailable()) {
       alertText = await smartAlertText({
-        type: detectedType,
+        type: issueType,
         severity,
-        description: description || detectedType,
+        description: description || issueType,
       });
     }
 
     await supabase.from('incidents').insert({
       lat: coords.lat,
       lng: coords.lng,
-      type: detectedType,
+      type: issueType,
       severity,
       description,
       reporter_name: name,
@@ -78,9 +87,10 @@ export default function UserReport() {
     });
 
     setSubmitting(false);
-    setDone({ type: detectedType, alert: alertText });
+    setDone({ type: issueType, alert: alertText });
     setImage(null);
     setDescription('');
+    setIssueType('unknown');
   }
 
   return (
@@ -125,6 +135,16 @@ export default function UserReport() {
               </div>
 
               <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Issue Type</label>
+                <input
+                  value={issueType}
+                  onChange={(e) => setIssueType(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rail-300 capitalize"
+                  placeholder="e.g. Obstruction"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Description</label>
                 <textarea
                   value={description}
@@ -160,14 +180,28 @@ export default function UserReport() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Photo</label>
-                <label className="flex items-center justify-center gap-2 px-4 py-6 rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-rail-400 hover:bg-rail-50/30 transition">
-                  <Camera size={18} className="text-slate-500" />
-                  <span className="text-sm text-slate-600">
-                    {image ? 'Change photo' : 'Upload track photo'}
-                  </span>
-                  <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
-                </label>
-                {image && (
+                {!image ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex flex-col items-center justify-center gap-3 px-4 py-6 rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-rail-400 hover:bg-rail-50/30 transition">
+                      <Camera size={24} className="text-slate-500" />
+                      <span className="text-sm font-medium text-slate-600">Take Photo</span>
+                      <input type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden" />
+                    </label>
+                    <label className="flex flex-col items-center justify-center gap-3 px-4 py-6 rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-rail-400 hover:bg-rail-50/30 transition">
+                      <Upload size={24} className="text-slate-500" />
+                      <span className="text-sm font-medium text-slate-600">Upload Image</span>
+                      <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                    </label>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-slate-300 cursor-pointer hover:border-rail-400 hover:bg-rail-50/30 transition">
+                    <Camera size={16} className="text-slate-500" />
+                    <span className="text-sm font-medium text-slate-600">Change photo</span>
+                    <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                  </label>
+                )}
+                {analyzing && <div className="mt-2 text-xs text-rail-500 animate-pulse flex items-center gap-1"><Sparkles size={12}/> AI is analyzing image and auto-filling form...</div>}
+                {image && !analyzing && (
                   <img src={image.dataUrl} alt="" className="mt-3 rounded-lg w-full max-h-56 object-cover" />
                 )}
               </div>

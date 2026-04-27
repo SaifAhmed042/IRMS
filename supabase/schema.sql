@@ -26,11 +26,42 @@
 -- =====================================================================
 
 CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL DEFAULT '',
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('manager','locopilot','user')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Trigger to automatically create a user in the public.users table when a new auth user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  meta_role TEXT;
+  safe_role TEXT;
+BEGIN
+  meta_role := COALESCE(NEW.raw_user_meta_data->>'role', 'user');
+  safe_role := CASE WHEN meta_role IN ('manager','locopilot','user') THEN meta_role ELSE 'user' END;
+
+  INSERT INTO public.users (id, name, role)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    safe_role
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 CREATE TABLE IF NOT EXISTS trains (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -113,50 +144,50 @@ ALTER TABLE decisions       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE incidents       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weather_data    ENABLE ROW LEVEL SECURITY;
 
--- Demo policies: anon read everywhere
+-- Demo policies: public read everywhere
 DO $$ BEGIN
-  CREATE POLICY "anon read users"          ON users          FOR SELECT TO anon USING (true);
+  CREATE POLICY "public read users"          ON users          FOR SELECT TO public USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon read trains"         ON trains         FOR SELECT TO anon USING (true);
+  CREATE POLICY "public read trains"         ON trains         FOR SELECT TO public USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon read schedule"       ON train_schedule FOR SELECT TO anon USING (true);
+  CREATE POLICY "public read schedule"       ON train_schedule FOR SELECT TO public USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon read locations"      ON live_locations FOR SELECT TO anon USING (true);
+  CREATE POLICY "public read locations"      ON live_locations FOR SELECT TO public USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon read decisions"      ON decisions      FOR SELECT TO anon USING (true);
+  CREATE POLICY "public read decisions"      ON decisions      FOR SELECT TO public USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon read incidents"      ON incidents      FOR SELECT TO anon USING (true);
+  CREATE POLICY "public read incidents"      ON incidents      FOR SELECT TO public USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon read weather"        ON weather_data   FOR SELECT TO anon USING (true);
+  CREATE POLICY "public read weather"        ON weather_data   FOR SELECT TO public USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Demo write paths
 DO $$ BEGIN
-  CREATE POLICY "anon insert locations"    ON live_locations FOR INSERT TO anon WITH CHECK (true);
+  CREATE POLICY "public insert locations"    ON live_locations FOR INSERT TO public WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon insert decisions"    ON decisions      FOR INSERT TO anon WITH CHECK (true);
+  CREATE POLICY "public insert decisions"    ON decisions      FOR INSERT TO public WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon update decisions"    ON decisions      FOR UPDATE TO anon USING (true) WITH CHECK (true);
+  CREATE POLICY "public update decisions"    ON decisions      FOR UPDATE TO public USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon insert incidents"    ON incidents      FOR INSERT TO anon WITH CHECK (true);
+  CREATE POLICY "public insert incidents"    ON incidents      FOR INSERT TO public WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon update incidents"    ON incidents      FOR UPDATE TO anon USING (true) WITH CHECK (true);
+  CREATE POLICY "public update incidents"    ON incidents      FOR UPDATE TO public USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon insert weather"      ON weather_data   FOR INSERT TO anon WITH CHECK (true);
+  CREATE POLICY "public insert weather"      ON weather_data   FOR INSERT TO public WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
-  CREATE POLICY "anon update trains"       ON trains         FOR UPDATE TO anon USING (true) WITH CHECK (true);
+  CREATE POLICY "public update trains"       ON trains         FOR UPDATE TO public USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- =====================================================================

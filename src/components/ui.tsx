@@ -1,9 +1,10 @@
 import { ReactNode } from 'react';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+  const hasBg = className.includes('bg-');
   return (
     <div
-      className={`bg-white rounded-xl shadow-soft border border-slate-200/70 ${className}`}
+      className={`${hasBg ? '' : 'bg-white'} rounded-xl shadow-soft border border-slate-200/70 ${className}`}
     >
       {children}
     </div>
