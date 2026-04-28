@@ -154,10 +154,26 @@ export default function LocoPilot() {
     };
 
     tick();
-    const id = window.setInterval(tick, TICK_MS);
-    tickRef.current = id;
+    
+    // Use an inline Web Worker to bypass browser background-tab throttling (1-minute limit)
+    const workerBlob = new Blob([`
+      let timer = null;
+      self.onmessage = function(e) {
+        if (e.data.action === 'start') {
+          timer = setInterval(() => self.postMessage('tick'), e.data.ms);
+        } else if (e.data.action === 'stop') {
+          clearInterval(timer);
+        }
+      };
+    `], { type: 'application/javascript' });
+    
+    const worker = new Worker(URL.createObjectURL(workerBlob));
+    worker.onmessage = () => tick();
+    worker.postMessage({ action: 'start', ms: TICK_MS });
+
     return () => {
-      if (tickRef.current) window.clearInterval(tickRef.current);
+      worker.postMessage({ action: 'stop' });
+      worker.terminate();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracking, train?.id]);
