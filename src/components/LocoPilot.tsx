@@ -39,6 +39,15 @@ export default function LocoPilot() {
 
   const train = useMemo(() => trains.find((t) => t.id === trainId) ?? null, [trains, trainId]);
 
+  // Force-reset if Station Master clears the simulation
+  useEffect(() => {
+    if (tracking && train && train.pilot_id === null) {
+      setTracking(false);
+      setTrainId(null);
+      alert('Simulation reset by Station Master! Please select your train to restart.');
+    }
+  }, [tracking, train]);
+
   // Initialize train direction and progress from its schedule
   useEffect(() => {
     if (!train || tracking) return;
