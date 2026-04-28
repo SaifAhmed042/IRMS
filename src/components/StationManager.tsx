@@ -290,9 +290,18 @@ export default function StationManager() {
           </div>
           <div className="mt-3 flex gap-2">
             <Button variant="outline" onClick={async () => {
-              // Quick demo: clear stale data
-              await supabase.from('live_locations').delete().not('id', 'is', null);
-              await supabase.from('decisions').delete().not('id', 'is', null);
+              if (!confirm('Are you sure you want to reset all simulation data and release all trains?')) return;
+              
+              const { error: e1 } = await supabase.from('live_locations').delete().not('id', 'is', null);
+              const { error: e2 } = await supabase.from('decisions').delete().not('id', 'is', null);
+              const { error: e4 } = await supabase.from('trains').update({ pilot_id: null }).not('id', 'is', null);
+
+              if (e1 || e2 || e4) {
+                console.error('Reset errors:', { e1, e2, e4 });
+                alert('Failed to reset completely. You likely need to add RLS DELETE/UPDATE policies!\nError: ' + (e1?.message || e2?.message || e4?.message));
+              } else {
+                alert('All live data reset and trains released successfully!');
+              }
             }}>
               Reset Live Data
             </Button>
