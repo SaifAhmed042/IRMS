@@ -59,7 +59,7 @@ export async function extractIncidentData(imageBase64: string, mime: string): Pr
     { inline_data: { mime_type: mime, data: imageBase64 } },
   ]);
   try {
-    const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const clean = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
     return JSON.parse(clean);
   } catch {
     return null;
