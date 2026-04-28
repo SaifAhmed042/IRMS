@@ -7,11 +7,14 @@ import { computeDecision } from '../lib/decisionEngine';
 import { explainDecision, geminiAvailable } from '../lib/gemini';
 import { pointAlongCorridor, CORRIDOR } from '../lib/corridor';
 import RailMap from './RailMap';
-import type { Decision } from '../lib/types';
+import type { Decision, Train } from '../lib/types';
+import { useAuth } from '../hooks/useAuth';
 
 const TICK_MS = 3000;
 
 export default function LocoPilot() {
+  const { session } = useAuth();
+  const currentPilotId = session?.user?.id;
   const trains = useTrains();
   const locations = useLatestLocations();
   const incidents = useIncidents(20);
@@ -67,6 +70,7 @@ export default function LocoPilot() {
       if ((direction === 1 && next >= 1) || (direction === -1 && next <= 0)) {
         setTracking(false);
         setTrainId(null);
+        await supabase.from('trains').update({ pilot_id: null }).eq('id', train.id);
         await supabase.from('trains').delete().eq('id', train.id);
         return;
       }
@@ -163,6 +167,31 @@ export default function LocoPilot() {
   const actionTextColor =
     action === 'PROCEED' ? 'text-emerald-300' : action === 'REDUCE' ? 'text-amber-300' : 'text-rose-300';
 
+  const myLockedTrain = useMemo(() => trains.find(t => t.pilot_id === currentPilotId), [trains, currentPilotId]);
+
+  const handleSelectTrain = async (t: Train) => {
+    if (t.pilot_id && t.pilot_id !== currentPilotId) {
+      alert("This train is already allocated to another locopilot!");
+      return;
+    }
+    if (myLockedTrain && myLockedTrain.id !== t.id) {
+      alert("You have already allocated another train. Cancel your current journey first.");
+      return;
+    }
+    
+    // Optimistically set UI, then lock in DB
+    setTrainId(t.id);
+    const { error } = await supabase
+      .from('trains')
+      .update({ pilot_id: currentPilotId })
+      .eq('id', t.id);
+      
+    if (error) {
+      alert("Could not allocate. Please try again.");
+      setTrainId(null);
+    }
+  };
+
   if (!train) {
     return (
       <div className="max-w-3xl mx-auto p-6">
@@ -172,20 +201,34 @@ export default function LocoPilot() {
             Pick the train you are operating. Tracking will simulate GPS along the Delhi–Mumbai corridor.
           </p>
           <div className="grid sm:grid-cols-2 gap-3 mt-4">
-            {trains.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTrainId(t.id)}
-                className="text-left p-4 rounded-xl border border-slate-200 hover:border-rail-400 hover:bg-rail-50/40 transition"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-rail-700">{t.train_no}</div>
-                  <Pill tone="blue">{t.train_type.toUpperCase()}</Pill>
-                </div>
-                <div className="text-sm text-slate-600 mt-1">{t.train_name}</div>
-                <div className="text-xs text-slate-400 mt-2">Max {t.max_speed} km/h · {t.schedule_status}</div>
-              </button>
-            ))}
+            {trains.map((t) => {
+              const isMine = t.pilot_id === currentPilotId;
+              const isTaken = !!t.pilot_id && !isMine;
+              
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => handleSelectTrain(t)}
+                  disabled={isTaken}
+                  className={`text-left p-4 rounded-xl border transition ${
+                    isTaken ? 'opacity-50 cursor-not-allowed border-slate-100 bg-slate-50' : 'border-slate-200 hover:border-rail-400 hover:bg-rail-50/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-rail-700">{t.train_no}</div>
+                    {isTaken ? (
+                      <Pill tone="rose">BLOCKED</Pill>
+                    ) : isMine ? (
+                      <Pill tone="emerald">YOURS</Pill>
+                    ) : (
+                      <Pill tone="blue">{t.train_type.toUpperCase()}</Pill>
+                    )}
+                  </div>
+                  <div className="text-sm text-slate-600 mt-1">{t.train_name}</div>
+                  <div className="text-xs text-slate-400 mt-2">Max {t.max_speed} km/h · {t.schedule_status}</div>
+                </button>
+              );
+            })}
           </div>
         </Card>
       </div>
@@ -288,9 +331,12 @@ export default function LocoPilot() {
             </div>
           </div>
           <button
-            onClick={() => {
+            onClick={async () => {
               setTracking(false);
               setTrainId(null);
+              if (train) {
+                await supabase.from('trains').update({ pilot_id: null }).eq('id', train.id);
+              }
             }}
             className="mt-4 text-xs text-slate-500 hover:text-rail-500"
           >

@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS trains (
   train_type TEXT NOT NULL CHECK (train_type IN ('rajdhani','express','passenger','goods')),
   max_speed INT NOT NULL DEFAULT 110,
   schedule_status TEXT NOT NULL DEFAULT 'on-time' CHECK (schedule_status IN ('delayed','on-time','early')),
+  pilot_id UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -10,6 +10,7 @@ export interface Train {
   train_type: TrainType;
   max_speed: number;
   schedule_status: ScheduleStatus;
+  pilot_id?: string | null;
 }
 
 export interface LiveLocation {
