@@ -9,6 +9,7 @@ import {
   Pause,
   Play,
   Gauge,
+  Trash2,
 } from 'lucide-react';
 import { Card, Pill, SectionTitle, StatTile, Button } from './ui';
 import RailMap from './RailMap';
@@ -45,13 +46,20 @@ export default function StationManager() {
 
   const stats = useMemo(() => {
     let proceed = 0, reduce = 0, stop = 0;
-    decisions.forEach((d) => {
-      if (d.action === 'PROCEED') proceed++;
-      else if (d.action === 'REDUCE') reduce++;
-      else if (d.action === 'STOP') stop++;
+    activeTrains.forEach((t) => {
+      const loc = locations.get(t.id);
+      const dec = decisions.get(t.id);
+      
+      if (loc?.speed === 0) {
+        stop++;
+      } else if (dec?.action === 'REDUCE') {
+        reduce++;
+      } else {
+        proceed++;
+      }
     });
     return { proceed, reduce, stop };
-  }, [decisions]);
+  }, [activeTrains, locations, decisions]);
 
   async function setWeather(p: (typeof WEATHER_PRESETS)[number]) {
     await supabase.from('weather_data').insert({
@@ -60,6 +68,10 @@ export default function StationManager() {
       severity: p.severity,
       factor: p.factor,
     });
+  }
+
+  async function deleteIncident(id: string) {
+    await supabase.from('incidents').delete().eq('id', id);
   }
 
   const WIcon = weather?.condition === 'Rain' ? CloudRain : weather?.condition === 'Fog' ? Cloud : Sun;
@@ -165,6 +177,13 @@ export default function StationManager() {
                       {new Date(i.created_at).toLocaleString()}
                     </div>
                   </div>
+                  <button
+                    onClick={() => deleteIncident(i.id)}
+                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors self-start"
+                    title="Resolve Incident"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               );
             })}

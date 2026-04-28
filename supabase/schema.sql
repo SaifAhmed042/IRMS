@@ -227,3 +227,5 @@ BEGIN
       (rid, 'Mumbai',    19.0760, 72.8777, 10);
   END IF;
 END $$;
+D O   $ $   B E G I N   C R E A T E   P O L I C Y   " p u b l i c   d e l e t e   i n c i d e n t s "   O N   i n c i d e n t s   F O R   D E L E T E   T O   p u b l i c   U S I N G   ( t r u e ) ;   E X C E P T I O N   W H E N   d u p l i c a t e _ o b j e c t   T H E N   N U L L ;   E N D   $ $ ;  
+ 

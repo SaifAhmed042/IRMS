@@ -153,12 +153,23 @@ export function computeDecision(ctx: DecisionContext): DecisionResult {
   });
 
   if (haltedTrain) {
-    return {
-      recommended_speed: 0,
-      action: 'STOP',
-      reason: `Train ${haltedTrain.train.train_no} is halted ${haltedTrain.km.toFixed(1)} km ahead. Holding position until track clears.`,
-      conflictTrainNo: haltedTrain.train.train_no,
-    };
+    if (haltedTrain.km <= 2.0) {
+      return {
+        recommended_speed: 0,
+        action: 'STOP',
+        reason: `Train ${haltedTrain.train.train_no} is halted ${haltedTrain.km.toFixed(1)} km ahead. Holding position until track clears.`,
+        conflictTrainNo: haltedTrain.train.train_no,
+      };
+    } else {
+      // Dynamic braking: gradually reduce speed as we approach the halted train
+      const distanceFactor = Math.max(0.1, (haltedTrain.km - 2.0) / (CONFLICT_RADIUS_KM - 2.0));
+      return {
+        recommended_speed: Math.max(10, Math.round(baseMax * distanceFactor * factor)),
+        action: 'REDUCE',
+        reason: `Train ${haltedTrain.train.train_no} is halted ${haltedTrain.km.toFixed(1)} km ahead. Applying dynamic brakes to prepare for halt.`,
+        conflictTrainNo: haltedTrain.train.train_no,
+      };
+    }
   }
 
   let action: ActionKind = 'PROCEED';
