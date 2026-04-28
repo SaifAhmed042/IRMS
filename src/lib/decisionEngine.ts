@@ -73,7 +73,8 @@ function etaMinutes(km: number, speedKmh: number): number {
   return (km / speedKmh) * 60;
 }
 
-const CONFLICT_RADIUS_KM = 15;
+const CONFLICT_RADIUS_KM = 30;
+const HEAD_ON_RADIUS_KM = 250;
 const INCIDENT_RADIUS_KM = 8;
 
 export function computeDecision(ctx: DecisionContext): DecisionResult {
@@ -106,15 +107,44 @@ export function computeDecision(ctx: DecisionContext): DecisionResult {
 
   // 2. Conflict detection
   const myScore = priorityScore(train);
-  const conflicts = others
-    .map((o) => ({ ...o, km: haversineKm(position, o.position) }))
+  
+  const aheadTrains = others
+    .map((o) => {
+      const isSouth = o.schedule && o.schedule.length >= 2 ? o.schedule[0].station_lat > o.schedule[1].station_lat : undefined;
+      const otherDirection = isSouth === true ? 1 : isSouth === false ? -1 : undefined;
+      return { ...o, km: haversineKm(position, o.position), otherDirection };
+    })
     .filter((o) => {
-      // Only consider trains within radius AND ahead of us
-      if (o.km > CONFLICT_RADIUS_KM) return false;
       if (ctx.direction === 1) return o.position.lat < position.lat; // Going south
       return o.position.lat > position.lat; // Going north
     })
     .sort((a, b) => a.km - b.km);
+
+  // Check for head-on conflicts first (opposite directions)
+  const headOn = aheadTrains.find((o) => o.otherDirection !== undefined && o.otherDirection !== ctx.direction && o.km <= HEAD_ON_RADIUS_KM);
+
+  if (headOn) {
+    const otherScore = priorityScore(headOn.train);
+    // If lower priority (or tie and going North), yield and stop.
+    if (otherScore > myScore || (otherScore === myScore && ctx.direction === -1)) {
+      return {
+        recommended_speed: 0,
+        action: 'STOP',
+        reason: `Head-on conflict with higher priority train ${headOn.train.train_no} approaching ${headOn.km.toFixed(1)} km ahead. Halt to yield.`,
+        conflictTrainNo: headOn.train.train_no,
+      };
+    } else {
+      return {
+        recommended_speed: Math.round(baseMax * 1.0 * factor),
+        action: 'PROCEED',
+        reason: `Head-on conflict with lower priority train ${headOn.train.train_no} (${headOn.km.toFixed(1)} km ahead). Priority granted, maintain speed.`,
+        conflictTrainNo: headOn.train.train_no,
+      };
+    }
+  }
+
+  // Same-direction conflicts
+  const conflicts = aheadTrains.filter((o) => o.otherDirection === ctx.direction && o.km <= CONFLICT_RADIUS_KM);
 
   // Check for halted trains ahead
   const haltedTrain = conflicts.find((o) => {
