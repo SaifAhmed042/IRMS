@@ -178,6 +178,9 @@ export default function LocoPilot() {
   }, [tracking, train?.id]);
 
   const myLoc = train ? locations.get(train.id) : undefined;
+  const activeSched = train ? schedules.get(train.id) : undefined;
+  const activeSource = activeSched && activeSched.length > 0 ? activeSched[0].station_name : 'Unknown';
+  const activeDest = activeSched && activeSched.length > 0 ? activeSched[activeSched.length - 1].station_name : 'Unknown';
   const action = latestDecision?.action ?? 'PROCEED';
   const actionTextColor =
     action === 'PROCEED' ? 'text-emerald-300' : action === 'REDUCE' ? 'text-amber-300' : 'text-rose-300';
@@ -219,6 +222,9 @@ export default function LocoPilot() {
             {trains.map((t) => {
               const isMine = t.pilot_id === currentPilotId;
               const isTaken = !!t.pilot_id && !isMine;
+              const sched = schedules.get(t.id);
+              const source = sched && sched.length > 0 ? sched[0].station_name : 'Unknown';
+              const dest = sched && sched.length > 0 ? sched[sched.length - 1].station_name : 'Unknown';
               
               return (
                 <button
@@ -240,6 +246,7 @@ export default function LocoPilot() {
                     )}
                   </div>
                   <div className="text-sm text-slate-600 mt-1">{t.train_name}</div>
+                  <div className="text-xs text-slate-500 mt-1 font-medium">{source} → {dest}</div>
                   <div className="text-xs text-slate-400 mt-2">Max {t.max_speed} km/h · {t.schedule_status}</div>
                 </button>
               );
@@ -264,6 +271,7 @@ export default function LocoPilot() {
                 <div className="text-xs uppercase tracking-widest opacity-80">Train</div>
                 <div className="text-3xl font-bold">{train.train_no}</div>
                 <div className="text-sm opacity-90">{train.train_name}</div>
+                <div className="text-[11px] uppercase tracking-wider opacity-75 mt-1">{activeSource} → {activeDest}</div>
               </div>
               <div className="text-right">
                 <div className="text-xs uppercase tracking-widest opacity-80">Action</div>
