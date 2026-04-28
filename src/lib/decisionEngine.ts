@@ -22,11 +22,13 @@ export interface DecisionContext {
   train: Train;
   position: { lat: number; lng: number };
   currentSpeed: number;
+  direction: number;
   others: {
     train: Train;
     position: { lat: number; lng: number };
     currentSpeed?: number;
     schedule?: ScheduleStop[];
+    timestamp?: string;
   }[];
   weather: Weather | null;
   incidents: Incident[];
@@ -106,8 +108,28 @@ export function computeDecision(ctx: DecisionContext): DecisionResult {
   const myScore = priorityScore(train);
   const conflicts = others
     .map((o) => ({ ...o, km: haversineKm(position, o.position) }))
-    .filter((o) => o.km <= CONFLICT_RADIUS_KM)
+    .filter((o) => {
+      // Only consider trains within radius AND ahead of us
+      if (o.km > CONFLICT_RADIUS_KM) return false;
+      if (ctx.direction === 1) return o.position.lat < position.lat; // Going south
+      return o.position.lat > position.lat; // Going north
+    })
     .sort((a, b) => a.km - b.km);
+
+  // Check for halted trains ahead
+  const haltedTrain = conflicts.find((o) => {
+    const isStale = o.timestamp ? Date.now() - new Date(o.timestamp).getTime() > 15000 : false;
+    return o.currentSpeed === 0 || isStale;
+  });
+
+  if (haltedTrain) {
+    return {
+      recommended_speed: 0,
+      action: 'STOP',
+      reason: `Train ${haltedTrain.train.train_no} is halted ${haltedTrain.km.toFixed(1)} km ahead. Holding position until track clears.`,
+      conflictTrainNo: haltedTrain.train.train_no,
+    };
+  }
 
   let action: ActionKind = 'PROCEED';
   let reason = 'Track clear, proceed at recommended cruising speed';

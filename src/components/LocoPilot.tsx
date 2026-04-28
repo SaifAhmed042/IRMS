@@ -74,14 +74,22 @@ export default function LocoPilot() {
         return;
       }
 
-      const clamped = next > 1 ? 1 : next < 0 ? 0 : next;
+      // Simulated current speed: 80% of recommended (or 70 if no decision)
+      const baseSpeed = latestDecision?.recommended_speed ?? Math.round(train.max_speed * 0.7);
+      const currentSpeed = baseSpeed === 0 ? 0 : Math.max(0, Math.round(baseSpeed * (0.85 + Math.random() * 0.2)));
+
+      // Only advance progress if the train is actually moving
+      let actualNext = progressRef.current;
+      if (currentSpeed > 0) {
+        // Base simulation speed: 0.006 corresponds to train.max_speed
+        actualNext += direction * 0.006 * (currentSpeed / train.max_speed);
+      }
+
+      const clamped = actualNext > 1 ? 1 : actualNext < 0 ? 0 : actualNext;
       progressRef.current = clamped;
       setProgress(clamped);
 
       const pos = pointAlongCorridor(clamped);
-      // Simulated current speed: 80% of recommended (or 70 if no decision)
-      const baseSpeed = latestDecision?.recommended_speed ?? Math.round(train.max_speed * 0.7);
-      const currentSpeed = Math.max(0, Math.round(baseSpeed * (0.85 + Math.random() * 0.2)));
 
       await supabase.from('live_locations').insert({
         train_id: train.id,
@@ -102,6 +110,7 @@ export default function LocoPilot() {
             position: { lat: l.lat, lng: l.lng },
             currentSpeed: l.speed,
             schedule: schedules.get(t.id),
+            timestamp: l.timestamp,
           };
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -110,6 +119,7 @@ export default function LocoPilot() {
         train,
         position: pos,
         currentSpeed,
+        direction,
         others,
         weather,
         incidents,
