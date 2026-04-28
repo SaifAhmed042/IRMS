@@ -88,8 +88,20 @@ export default function LocoPilot() {
     const tick = async () => {
       const next = progressRef.current + direction * 0.006;
       
+      const haltTrainDb = async (p: number) => {
+        const pos = pointAlongCorridor(p);
+        await supabase.from('live_locations').insert({
+          train_id: train.id,
+          lat: pos.lat,
+          lng: pos.lng,
+          speed: 0,
+          heading: 180,
+        });
+      };
+
       // Auto-remove train if destination reached
       if ((direction === 1 && next >= 1) || (direction === -1 && next <= 0)) {
+        await haltTrainDb(direction === 1 ? 1 : 0);
         setTracking(false);
         setTrainId(null);
         await supabase.from('trains').update({ pilot_id: null }).eq('id', train.id);
@@ -209,6 +221,18 @@ export default function LocoPilot() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracking, train?.id]);
+
+  const haltTrain = async () => {
+    if (!train) return;
+    const pos = pointAlongCorridor(progress);
+    await supabase.from('live_locations').insert({
+      train_id: train.id,
+      lat: pos.lat,
+      lng: pos.lng,
+      speed: 0,
+      heading: 180,
+    });
+  };
 
   const myLoc = train ? locations.get(train.id) : undefined;
   const activeSched = train ? schedules.get(train.id) : undefined;
@@ -365,7 +389,10 @@ export default function LocoPilot() {
               <Play size={16} /> Start Tracking
             </Button>
           ) : (
-            <Button variant="danger" onClick={() => setTracking(false)} className="w-full">
+            <Button variant="danger" onClick={async () => {
+              await haltTrain();
+              setTracking(false);
+            }} className="w-full">
               <Square size={16} /> Stop Tracking
             </Button>
           )}
@@ -388,6 +415,7 @@ export default function LocoPilot() {
           </div>
           <button
             onClick={async () => {
+              await haltTrain();
               setTracking(false);
               setTrainId(null);
               if (train) {
