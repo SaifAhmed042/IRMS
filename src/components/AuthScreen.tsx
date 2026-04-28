@@ -28,7 +28,7 @@ const ROLE_OPTIONS: { role: AppRole; title: string; desc: string; icon: any; ton
 ];
 
 const BACKGROUNDS = {
-  signin: 'https://images.unsplash.com/photo-1541892079-0524784e1b8b?q=80&w=2000&auto=format&fit=crop',
+  signin: 'https://images.indianexpress.com/2026/02/railways-3.jpg',
   signup: {
     manager: 'https://images.unsplash.com/photo-1551065178-5db0d456dc25?q=80&w=2000&auto=format&fit=crop', // Control room feel
     locopilot: 'https://images.unsplash.com/photo-1563514755104-5f5f4019a274?q=80&w=2000&auto=format&fit=crop', // Train cabin feel
