@@ -53,7 +53,6 @@ export default function LocoPilot() {
     }
   }, [train, schedules, tracking]);
   const [aiExplanation, setAiExplanation] = useState('');
-  const tickRef = useRef<number | null>(null);
   const progressRef = useRef(0);
   const lastAIKeyRef = useRef('');
 
