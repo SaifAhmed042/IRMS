@@ -71,7 +71,11 @@ export default function StationManager() {
   }
 
   async function deleteIncident(id: string) {
-    await supabase.from('incidents').delete().eq('id', id);
+    const { error } = await supabase.from('incidents').delete().eq('id', id);
+    if (error) {
+      console.error('Delete error:', error);
+      alert(`Failed to delete incident: ${error.message}`);
+    }
   }
 
   const WIcon = weather?.condition === 'Rain' ? CloudRain : weather?.condition === 'Fog' ? Cloud : Sun;
