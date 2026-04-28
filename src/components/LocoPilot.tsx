@@ -56,6 +56,20 @@ export default function LocoPilot() {
   const progressRef = useRef(0);
   const lastAIKeyRef = useRef('');
 
+  const latestDecisionRef = useRef<Decision | null>(latestDecision);
+  const trainsRef = useRef(trains);
+  const locationsRef = useRef(locations);
+  const incidentsRef = useRef(incidents);
+  const weatherRef = useRef(weather);
+  const schedulesRef = useRef(schedules);
+
+  useEffect(() => { latestDecisionRef.current = latestDecision; }, [latestDecision]);
+  useEffect(() => { trainsRef.current = trains; }, [trains]);
+  useEffect(() => { locationsRef.current = locations; }, [locations]);
+  useEffect(() => { incidentsRef.current = incidents; }, [incidents]);
+  useEffect(() => { weatherRef.current = weather; }, [weather]);
+  useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
+
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
@@ -75,7 +89,7 @@ export default function LocoPilot() {
       }
 
       // Simulated current speed: 80% of recommended (or 70 if no decision)
-      const baseSpeed = latestDecision?.recommended_speed ?? Math.round(train.max_speed * 0.7);
+      const baseSpeed = latestDecisionRef.current?.recommended_speed ?? Math.round(train.max_speed * 0.7);
       const currentSpeed = baseSpeed === 0 ? 0 : Math.max(0, Math.round(baseSpeed * (0.85 + Math.random() * 0.2)));
 
       // Only advance progress if the train is actually moving
@@ -100,16 +114,16 @@ export default function LocoPilot() {
       });
 
       // Build decision context from current data
-      const others = trains
+      const others = trainsRef.current
         .filter((t) => t.id !== train.id)
         .map((t) => {
-          const l = locations.get(t.id);
+          const l = locationsRef.current.get(t.id);
           if (!l) return null;
           return {
             train: t,
             position: { lat: l.lat, lng: l.lng },
             currentSpeed: l.speed,
-            schedule: schedules.get(t.id),
+            schedule: schedulesRef.current.get(t.id),
             timestamp: l.timestamp,
           };
         })
@@ -121,9 +135,9 @@ export default function LocoPilot() {
         currentSpeed,
         direction,
         others,
-        weather,
-        incidents,
-        schedule: schedules.get(train.id),
+        weather: weatherRef.current,
+        incidents: incidentsRef.current,
+        schedule: schedulesRef.current.get(train.id),
       });
 
       const { data: insertedRows } = await supabase

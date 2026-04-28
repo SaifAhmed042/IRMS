@@ -74,7 +74,7 @@ function etaMinutes(km: number, speedKmh: number): number {
 }
 
 const CONFLICT_RADIUS_KM = 30;
-const HEAD_ON_RADIUS_KM = 250;
+const HEAD_ON_RADIUS_KM = 20;
 const INCIDENT_RADIUS_KM = 8;
 
 export function computeDecision(ctx: DecisionContext): DecisionResult {
