@@ -82,7 +82,7 @@ export default function AuthScreen() {
           style={{ backgroundImage: `url(${bgImage})` }}
         />
       </AnimatePresence>
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-10" />
+      <div className="absolute inset-0 bg-slate-900/50 z-10" />
 
       <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-8 items-center relative z-20">
         <motion.div 
