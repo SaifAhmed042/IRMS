@@ -75,5 +75,16 @@ export async function signUp(params: { email: string; password: string; fullName
 }
 
 export async function signOut() {
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.warn('Global signout failed, clearing local session...', error);
+    // Forcefully remove Supabase auth tokens from localStorage to prevent being stuck
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-')) {
+        localStorage.removeItem(key);
+      }
+    }
+    window.location.href = '/';
+  }
 }

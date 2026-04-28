@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Camera, Upload, MapPin, Send, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
+import { Camera, Upload, MapPin, Send, AlertTriangle, CheckCircle2, Sparkles, Train } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Button, SectionTitle, Pill } from './ui';
 import { supabase } from '../lib/supabase';
 import { extractIncidentData, smartAlertText, geminiAvailable } from '../lib/gemini';
@@ -94,13 +95,31 @@ export default function UserReport() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 grid grid-cols-12 gap-5">
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }} 
+      animate={{ opacity: 1, scale: 1 }} 
+      transition={{ duration: 0.4 }}
+      className="max-w-5xl mx-auto p-6 grid grid-cols-12 gap-5"
+    >
       <div className="col-span-12 lg:col-span-7">
-        <Card className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500 text-white flex items-center justify-center">
+        <Card className="p-6 relative overflow-hidden">
+          {/* Subtle animated background element for public reporter */}
+          <motion.div 
+            animate={{ x: [400, -100] }}
+            transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+            className="absolute -bottom-6 opacity-[0.03] pointer-events-none"
+          >
+            <Train size={200} />
+          </motion.div>
+          
+          <div className="flex items-start gap-4 relative z-10">
+            <motion.div 
+              animate={{ y: [0, -5, 0] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shadow-lg"
+            >
               <AlertTriangle size={22} />
-            </div>
+            </motion.div>
             <div>
               <h2 className="text-xl font-bold text-rail-700">Report a track incident</h2>
               <p className="text-sm text-slate-500 mt-1">
@@ -275,6 +294,6 @@ export default function UserReport() {
           </p>
         </Card>
       </div>
-    </div>
+    </motion.div>
   );
 }

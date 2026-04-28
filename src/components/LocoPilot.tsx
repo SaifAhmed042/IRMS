@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Square, Gauge, AlertTriangle, CloudRain, Sparkles, MapPin } from 'lucide-react';
+import { Play, Square, Gauge, AlertTriangle, CloudRain, Sparkles, MapPin, TrainFront } from 'lucide-react';
 import { Card, Button, Pill, SectionTitle } from './ui';
 import { supabase } from '../lib/supabase';
 import { useTrains, useLatestLocations, useIncidents, useWeather, useSchedules } from '../hooks/useIRMSData';
@@ -34,6 +34,8 @@ export default function LocoPilot() {
   const [direction, setDirection] = useState(1); 
   const [latestDecision, setLatestDecision] = useState<Decision | null>(null);
 
+  const train = useMemo(() => trains.find((t) => t.id === trainId) ?? null, [trains, trainId]);
+
   // Initialize train direction and progress from its schedule
   useEffect(() => {
     if (!train || tracking) return;
@@ -48,8 +50,6 @@ export default function LocoPilot() {
     }
   }, [train, schedules, tracking]);
   const [aiExplanation, setAiExplanation] = useState('');
-
-  const train = useMemo(() => trains.find((t) => t.id === trainId) ?? null, [trains, trainId]);
   const tickRef = useRef<number | null>(null);
   const progressRef = useRef(0);
   const lastAIKeyRef = useRef('');
@@ -195,8 +195,11 @@ export default function LocoPilot() {
   return (
     <div className="max-w-6xl mx-auto p-6 grid grid-cols-12 gap-5">
       <div className="col-span-12 lg:col-span-7 space-y-5">
-        <Card className="relative overflow-hidden text-white bg-rail-500">
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10"></div>
+        <Card className="relative overflow-hidden text-white bg-gradient-to-br from-rail-500 to-rail-700 shadow-xl">
+          <div className="absolute -top-4 opacity-10 animate-[pulse_12s_ease-in-out_infinite] translate-x-32">
+            <TrainFront size={140} />
+          </div>
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10 blur-xl"></div>
           <div className="p-6">
             <div className="flex items-center justify-between">
               <div>

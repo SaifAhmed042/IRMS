@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { TrainFront, Radio, AlertTriangle, ArrowRight, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { signIn, signUp, type AppRole } from '../hooks/useAuth';
 
 const ROLE_OPTIONS: { role: AppRole; title: string; desc: string; icon: any; tone: string }[] = [
@@ -25,6 +26,15 @@ const ROLE_OPTIONS: { role: AppRole; title: string; desc: string; icon: any; ton
     tone: 'from-amber-500 to-amber-600',
   },
 ];
+
+const BACKGROUNDS = {
+  signin: 'https://images.unsplash.com/photo-1541892079-0524784e1b8b?q=80&w=2000&auto=format&fit=crop',
+  signup: {
+    manager: 'https://images.unsplash.com/photo-1551065178-5db0d456dc25?q=80&w=2000&auto=format&fit=crop', // Control room feel
+    locopilot: 'https://images.unsplash.com/photo-1563514755104-5f5f4019a274?q=80&w=2000&auto=format&fit=crop', // Train cabin feel
+    user: 'https://images.unsplash.com/photo-1533667586627-9f5adcecebc8?q=80&w=2000&auto=format&fit=crop', // Tracks / Public
+  }
+};
 
 type Mode = 'signin' | 'signup';
 
@@ -56,24 +66,50 @@ export default function AuthScreen() {
     }
   };
 
+  const bgImage = mode === 'signin' ? BACKGROUNDS.signin : BACKGROUNDS.signup[role];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-rail-50/40 flex items-center justify-center p-6">
-      <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-8 items-center">
-        <div className="lg:col-span-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rail-50 text-rail-700 text-xs font-semibold mb-4 ring-1 ring-rail-100">
+    <div className="min-h-screen relative flex items-center justify-center p-6 overflow-hidden">
+      {/* Animated Background Image */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={bgImage}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.8, ease: 'easeInOut' }}
+          className="absolute inset-0 bg-cover bg-center z-0"
+          style={{ backgroundImage: `url(${bgImage})` }}
+        />
+      </AnimatePresence>
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-10" />
+
+      <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-8 items-center relative z-20">
+        <motion.div 
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          className="lg:col-span-6"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white backdrop-blur-md text-xs font-semibold mb-4 ring-1 ring-white/30 shadow-lg">
             HYBRID AI · DETERMINISTIC + GEMINI
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-rail-700 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight drop-shadow-lg">
             Intelligent Rail Management System
           </h1>
-          <p className="mt-4 text-slate-600 max-w-xl leading-relaxed">
+          <p className="mt-4 text-slate-200 max-w-xl leading-relaxed drop-shadow-md">
             Mobile-based real-time tracking, schedule-aware conflict resolution and AI advisories — sign in
             with the role you operate as.
           </p>
 
           {mode === 'signup' && (
-            <div className="mt-8 space-y-3">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-8 space-y-3"
+            >
+              <div className="text-xs font-semibold text-white/80 uppercase tracking-wide drop-shadow-sm">
                 Choose your role
               </div>
               <div className="grid sm:grid-cols-3 gap-3">
@@ -82,30 +118,35 @@ export default function AuthScreen() {
                     type="button"
                     key={r}
                     onClick={() => setRole(r)}
-                    className={`text-left p-4 rounded-xl border transition ${
+                    className={`text-left p-4 rounded-xl border transition backdrop-blur-md ${
                       role === r
-                        ? 'border-rail-400 bg-rail-50/60 ring-2 ring-rail-200'
-                        : 'border-slate-200 hover:border-rail-300 bg-white'
+                        ? 'border-white/50 bg-white/20 ring-2 ring-white/50 shadow-lg'
+                        : 'border-white/10 bg-black/20 hover:bg-black/40 hover:border-white/30'
                     }`}
                   >
                     <div
-                      className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tone} text-white flex items-center justify-center shadow-soft`}
+                      className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tone} text-white flex items-center justify-center shadow-lg`}
                     >
                       <Icon size={18} />
                     </div>
-                    <div className="mt-3 text-sm font-bold text-rail-700">{title}</div>
+                    <div className={`mt-3 text-sm font-bold ${role === r ? 'text-white' : 'text-slate-300'}`}>{title}</div>
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-300 drop-shadow-md">
                 {ROLE_OPTIONS.find((o) => o.role === role)?.desc}
               </p>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
-        <div className="lg:col-span-6">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-soft p-7">
+        <motion.div 
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          className="lg:col-span-6"
+        >
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-7">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-rail-700">
@@ -206,10 +247,10 @@ export default function AuthScreen() {
               )}
             </div>
           </div>
-          <p className="mt-4 text-center text-xs text-slate-400">
+          <p className="mt-4 text-center text-xs text-white/60 drop-shadow-sm">
             Email confirmation is disabled — sign-up grants instant access.
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

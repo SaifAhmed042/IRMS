@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Card, Pill, SectionTitle, StatTile, Button } from './ui';
 import RailMap from './RailMap';
+import { motion } from 'framer-motion';
 import {
   useTrains,
   useLatestLocations,
@@ -64,9 +65,21 @@ export default function StationManager() {
   const WIcon = weather?.condition === 'Rain' ? CloudRain : weather?.condition === 'Fog' ? Cloud : Sun;
 
   return (
-    <div className="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-5">
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.5 }}
+      className="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-5"
+    >
       <div className="col-span-12 grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatTile label="Active Trains" value={activeTrains.length} sub={`${trains.length} in roster`} tone="blue" />
+        <div className="relative">
+          <motion.div 
+            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+            className="absolute inset-0 bg-blue-400 rounded-2xl -z-10"
+          />
+          <StatTile label="Active Trains" value={activeTrains.length} sub={`${trains.length} in roster`} tone="blue" />
+        </div>
         <StatTile label="Proceeding" value={stats.proceed} tone="emerald" />
         <StatTile label="Reducing" value={stats.reduce} tone="amber" />
         <StatTile label="Stopped" value={stats.stop} tone="rose" />
@@ -263,6 +276,6 @@ export default function StationManager() {
           </div>
         </Card>
       </div>
-    </div>
+    </motion.div>
   );
 }
