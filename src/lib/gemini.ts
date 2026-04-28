@@ -1,5 +1,5 @@
 const KEY = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
-const MODEL = 'gemini-1.5-flash-latest';
+const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 export const geminiAvailable = () => Boolean(KEY);

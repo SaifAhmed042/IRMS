@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Camera, Upload, MapPin, Send, AlertTriangle, CheckCircle2, Sparkles, Train } from 'lucide-react';
+import { Camera, Upload, MapPin, Send, AlertTriangle, CheckCircle2, Sparkles, Train, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Button, SectionTitle, Pill } from './ui';
 import { supabase } from '../lib/supabase';
@@ -92,6 +92,10 @@ export default function UserReport() {
     setImage(null);
     setDescription('');
     setIssueType('unknown');
+  }
+
+  async function deleteIncident(id: string) {
+    await supabase.from('incidents').delete().eq('id', id);
   }
 
   return (
@@ -279,6 +283,13 @@ export default function UserReport() {
                     {new Date(i.created_at).toLocaleString()}
                   </div>
                 </div>
+                <button
+                  onClick={() => deleteIncident(i.id)}
+                  className="ml-2 p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                  title="Delete report"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             ))}
           </div>
