@@ -30,9 +30,9 @@ const ROLE_OPTIONS: { role: AppRole; title: string; desc: string; icon: any; ton
 const BACKGROUNDS = {
   signin: 'https://images.indianexpress.com/2026/02/railways-3.jpg',
   signup: {
-    manager: 'https://images.unsplash.com/photo-1551065178-5db0d456dc25?q=80&w=2000&auto=format&fit=crop', // Control room feel
-    locopilot: 'https://images.unsplash.com/photo-1563514755104-5f5f4019a274?q=80&w=2000&auto=format&fit=crop', // Train cabin feel
-    user: 'https://images.unsplash.com/photo-1533667586627-9f5adcecebc8?q=80&w=2000&auto=format&fit=crop', // Tracks / Public
+    manager: 'https://c7.alamy.com/comp/2C6PCGR/train-station-manager-sign-at-darjeeling-india-2C6PCGR.jpg', // Control room feel
+    locopilot: 'https://pbs.twimg.com/media/GxuZ7svWcAAQoEK.jpg', // Train cabin feel
+    user: 'https://static.vecteezy.com/system/resources/thumbnails/053/747/059/small/railway-tracks-stretching-through-a-green-field-and-mountains-under-a-clear-sky-photo.jpeg', // Tracks / Public
   }
 };
 
