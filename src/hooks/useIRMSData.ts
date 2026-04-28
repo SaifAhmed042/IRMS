@@ -181,6 +181,13 @@ export function useIncidents(limit = 50): Incident[] {
           setList((p) => p.map((i) => (i.id === row.id ? row : i)));
         },
       )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'incidents' },
+        (payload) => {
+          setList((p) => p.filter((i) => i.id !== payload.old.id));
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
